@@ -86,7 +86,7 @@ def check_and_increment(api_key: str, item: Dict) -> bool:
     return True
 
 
-def create_key(tier: str = "free", user_id: str = "") -> str:
+def create_key(tier: str = "free", user_id: str = "", email: str = "") -> str:
     """Create a new API key, store in DynamoDB, and return the key string."""
     if tier not in RATE_LIMITS:
         raise ValueError(f"Invalid tier '{tier}'. Must be: {list(RATE_LIMITS)}")
@@ -98,6 +98,7 @@ def create_key(tier: str = "free", user_id: str = "") -> str:
     table.put_item(Item={
         "api_key": api_key,
         "user_id": user_id or f"user-{uuid.uuid4().hex[:8]}",
+        "email": email,
         "tier": tier,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "requests_today": 0,

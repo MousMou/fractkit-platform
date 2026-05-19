@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,9 +120,9 @@ export default function Home() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <button className="shimmer-btn inline-flex items-center justify-center px-8 h-12 rounded-xl text-sm font-bold text-white shadow-xl shadow-violet-900/40">
+            <Link href="/register" className="shimmer-btn inline-flex items-center justify-center px-8 h-12 rounded-xl text-sm font-bold text-white shadow-xl shadow-violet-900/40">
               Get your API key →
-            </button>
+            </Link>
             <a
               href="https://pypi.org/project/noisebridge/"
               target="_blank"
@@ -375,12 +376,13 @@ export default function Home() {
                       {p.cta}
                     </a>
                   ) : (
-                    <button
+                    <Link
+                      href="/register"
                       className="w-full inline-flex items-center justify-center h-11 rounded-xl text-sm font-semibold text-white/70 transition-all duration-200 hover:text-white hover:bg-white/5"
                       style={{ border: "1px solid rgba(255,255,255,0.12)" }}
                     >
                       {p.cta}
-                    </button>
+                    </Link>
                   )}
                 </div>
               );

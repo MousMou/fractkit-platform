@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from app.routes import correct, devices, health, keys, billing
+from app.routes import correct, devices, health, keys, billing, register, me
 
 
 @asynccontextmanager
@@ -28,12 +28,19 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://fractkit.io", "https://www.fractkit.io"],
+    allow_origins=[
+        "https://fractkit.io",
+        "https://www.fractkit.io",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_methods=["GET", "POST"],
     allow_headers=["X-API-Key", "Content-Type"],
 )
 
 app.include_router(health.router)
+app.include_router(register.router)
+app.include_router(me.router)
 app.include_router(correct.router)
 app.include_router(devices.router)
 app.include_router(keys.router)
