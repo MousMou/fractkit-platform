@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  noisebridge Cloud API — FastAPI + Mangum on AWS Lambda
+  Zero-overhead quantum noise mitigation, validated on 6 real QPUs.
+
+# ── Parameters ─────────────────────────────────────────────────────────────────
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+    Description: Deployment stage
+
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues: [DEBUG, INFO, WARNING, ERROR]
+
+# ── Globals ────────────────────────────────────────────────────────────────────
+Globals:
+  Function:
+    Runtime: python3.11
+    MemorySize: 256
+    Timeout: 30
+    Environment:
+      Variables:
+        STAGE: !Ref Stage
+        LOG_LEVEL: !Ref LogLevel
+        DYNAMODB_TABLE: !Sub "noisebridge-api-keys-${Stage}"
+    Tags:
+      Project: fractkit
+      Component: noisebridge-api
+
+# ── Resources ──────────────────────────────────────────────────────────────────
+Resources:
+
+  NoisebridgeApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "noisebridge-api-${Stage}"
+      CodeUri: ../../packages/api/
+      Handler: app.main.handler
+      Description: "noisebridge quantum noise mitigation API"
+      Events:
+        # HTTP API v2 — cheaper and lower latency than REST API v1
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NoisebridgeHttpApi
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NoisebridgeApiKeysTable
+
+  NoisebridgeHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Stage
+      Description: "noisebridge API Gateway (HTTP API v2)"
+      CorsConfiguration:
+        AllowOrigins:
+          - "https://fractkit.io"
+          - "https://www.fractkit.io"
+        AllowMethods:
+          - GET
+          - POST
+        AllowHeaders:
+          - X-API-Key
+          - Content-Type
+        MaxAge: 300
+
+  # ── DynamoDB table for API key management ─────────────────────────────────
+  NoisebridgeApiKeysTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      TableName: !Sub "noisebridge-api-keys-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: api_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: api_key
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: fractkit
+        - Key: Stage
+          Value: !Ref Stage
+
+  # CloudWatch log group with 30-day retention
+  NoisebridgeApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/noisebridge-api-${Stage}"
+      RetentionInDays: 30
+
+# ── Outputs ────────────────────────────────────────────────────────────────────
+Outputs:
+  ApiUrl:
+    Description: "noisebridge API endpoint URL"
+    Value: !Sub "https://${NoisebridgeHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+    Export:
+      Name: !Sub "NoisebridgeApiUrl-${Stage}"
+
+  FunctionArn:
+    Description: "Lambda function ARN"
+    Value: !GetAtt NoisebridgeApiFunction.Arn
+    Export:
+      Name: !Sub "NoisebridgeFunctionArn-${Stage}"
+
+  DynamoDBTableName:
+    Description: "API keys DynamoDB table name"
+    Value: !Ref NoisebridgeApiKeysTable
+    Export:
+      Name: !Sub "NoisebridgeApiKeysTable-${Stage}"

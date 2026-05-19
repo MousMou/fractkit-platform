@@ -1,0 +1,100 @@
+name: Deploy API to AWS Lambda
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/api/**"
+      - "infra/aws/api.yaml"
+
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Deployment stage"
+        required: true
+        default: prod
+        type: choice
+        options: [dev, staging, prod]
+
+jobs:
+  test:
+    name: Run API tests before deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install noisebridge + API deps
+        run: |
+          pip install -e "packages/noisebridge[dev]"
+          pip install -r packages/api/requirements-dev.txt
+
+      - name: Run API tests
+        run: |
+          cd packages/api
+          python -m pytest tests/ -v --tb=short
+
+  deploy:
+    name: Deploy to AWS Lambda (${{ github.event.inputs.stage || 'prod' }})
+    runs-on: ubuntu-latest
+    needs: test
+    environment:
+      name: ${{ github.event.inputs.stage || 'prod' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Install API dependencies into package dir
+        run: |
+          pip install \
+            --target packages/api/ \
+            --no-deps \
+            -r packages/api/requirements.txt
+
+      - name: SAM build
+        run: |
+          sam build \
+            --template infra/aws/api.yaml \
+            --build-dir .aws-sam/build
+
+      - name: SAM deploy
+        run: |
+          sam deploy \
+            --template-file .aws-sam/build/template.yaml \
+            --stack-name noisebridge-api-${{ github.event.inputs.stage || 'prod' }} \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides Stage=${{ github.event.inputs.stage || 'prod' }} \
+            --region ${{ secrets.AWS_REGION }}
+
+      - name: Print deployed API URL
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name noisebridge-api-${{ github.event.inputs.stage || 'prod' }} \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
+            --output text \
+            --region ${{ secrets.AWS_REGION }}
