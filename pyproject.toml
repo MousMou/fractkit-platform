@@ -5,7 +5,7 @@
 #
 # To run tests per package:
 #   cd packages/api && python -m pytest tests/
-#   cd packages/sdk && python -m pytest tests/   (Session 6)
+#   cd packages/sdk && python -m pytest tests/
 
 [tool.pytest.ini_options]
 testpaths = ["packages/api/tests"]

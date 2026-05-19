@@ -32,3 +32,29 @@ jobs:
         run: |
           cd packages/api
           python -m pytest tests/ -v --tb=short
+
+  test-sdk:
+    name: Test SDK (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install SDK dev dependencies
+        run: pip install -e "packages/sdk[dev]"
+
+      - name: Run SDK tests
+        run: |
+          cd packages/sdk
+          python -m pytest tests/ -v --tb=short
