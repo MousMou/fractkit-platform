@@ -63,3 +63,10 @@ desktop.ini
 temp_*/
 logs/
 diagnostics/
+
+# Internal docs — not for public repo
+CLAUDE.md
+SESSIONS.md
+INSTRUCCIONES_OPERACIONALES.md
+MVP_FractKit_ClaudeCode_ExecutiveReport.md
+docs/wiki_schema.md
