@@ -129,37 +129,75 @@
   }
 }
 
-/* Dot grid hero background */
-.dot-grid {
-  background-image: radial-gradient(circle, rgba(124, 58, 237, 0.25) 1px, transparent 1px);
-  background-size: 28px 28px;
+/* ─── Line grid background ─────────────────────────────────────────────────── */
+.line-grid {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1'/%3E%3C/svg%3E");
 }
 
-/* Shimmer button */
-@keyframes shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+/* ─── Animated gradient text ──────────────────────────────────────────────── */
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
-.shimmer-btn {
-  background: linear-gradient(
-    90deg,
-    #7c3aed 0%,
-    #a78bfa 40%,
-    #67e8f9 60%,
-    #7c3aed 100%
-  );
-  background-size: 200% auto;
-  animation: shimmer 3s linear infinite;
-  transition: opacity 0.2s;
-}
-.shimmer-btn:hover {
-  opacity: 0.9;
-}
-
-/* Glow text gradient */
 .gradient-text {
-  background: linear-gradient(135deg, #a78bfa 0%, #67e8f9 100%);
+  background: linear-gradient(90deg, #a78bfa, #67e8f9, #a78bfa);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* ─── Shimmer button ───────────────────────────────────────────────────────── */
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(300%) skewX(-12deg); }
+}
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.shimmer-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  transform: translateX(-100%) skewX(-12deg);
+}
+.shimmer-btn:hover {
+  box-shadow: 0 0 30px rgba(124, 58, 237, 0.5), 0 0 60px rgba(124, 58, 237, 0.2);
+  transform: translateY(-1px);
+}
+.shimmer-btn:hover::after {
+  animation: shimmer-sweep 0.6s ease forwards;
+}
+
+/* ─── Live pulse badge ─────────────────────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 0.8; }
+  70%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+.live-dot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse-ring 1.8s ease-out infinite;
 }

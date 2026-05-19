@@ -30,7 +30,7 @@ export function StatCard({ value, label, device }: Props) {
           obs.disconnect();
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.4 }
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -38,12 +38,12 @@ export function StatCard({ value, label, device }: Props) {
 
   useEffect(() => {
     if (!started) return;
-    const duration = 1200;
-    const steps = 40;
-    const step = num / steps;
+    const duration = 1400;
+    const steps = 50;
+    const increment = num / steps;
     let current = 0;
     const id = setInterval(() => {
-      current = Math.min(current + step, num);
+      current = Math.min(current + increment, num);
       setCount(current);
       if (current >= num) clearInterval(id);
     }, duration / steps);
@@ -57,15 +57,36 @@ export function StatCard({ value, label, device }: Props) {
   return (
     <div
       ref={ref}
-      className="relative flex flex-col items-center p-6 rounded-2xl border border-violet-500/30 bg-violet-950/20
-                 shadow-[0_0_24px_rgba(124,58,237,0.18)] hover:shadow-[0_0_36px_rgba(124,58,237,0.35)]
-                 transition-shadow duration-300"
+      style={{
+        background: "linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(6,182,212,0.05) 100%)",
+        border: "1px solid rgba(124,58,237,0.3)",
+        boxShadow: "0 0 30px rgba(124,58,237,0.15)",
+        transition: "box-shadow 0.3s ease, transform 0.3s ease",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow =
+          "0 0 50px rgba(124,58,237,0.3), 0 0 80px rgba(124,58,237,0.1)";
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 30px rgba(124,58,237,0.15)";
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+      }}
+      className="relative flex flex-col items-center justify-center text-center p-8 rounded-2xl overflow-hidden"
     >
-      <div className="text-3xl font-extrabold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+      {/* subtle inner glow top */}
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-px"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(124,58,237,0.6), transparent)" }}
+      />
+      <div
+        className="font-extrabold gradient-text leading-none mb-2"
+        style={{ fontSize: "56px", letterSpacing: "-2px" }}
+      >
         {display}
       </div>
-      <div className="text-sm text-white/70 mt-1">{label}</div>
-      <div className="text-xs text-white/40 mt-0.5">{device}</div>
+      <div className="text-sm font-semibold text-white/70">{label}</div>
+      <div className="text-xs text-white/35 mt-1">{device}</div>
     </div>
   );
 }
