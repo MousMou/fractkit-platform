@@ -128,3 +128,38 @@
     @apply font-sans;
   }
 }
+
+/* Dot grid hero background */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(124, 58, 237, 0.25) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Shimmer button */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.shimmer-btn {
+  background: linear-gradient(
+    90deg,
+    #7c3aed 0%,
+    #a78bfa 40%,
+    #67e8f9 60%,
+    #7c3aed 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+  transition: opacity 0.2s;
+}
+.shimmer-btn:hover {
+  opacity: 0.9;
+}
+
+/* Glow text gradient */
+.gradient-text {
+  background: linear-gradient(135deg, #a78bfa 0%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
