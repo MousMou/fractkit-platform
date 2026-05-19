@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from app.routes import correct, devices, health, keys
+from app.routes import correct, devices, health, keys, billing
 
 
 @asynccontextmanager
@@ -37,6 +37,7 @@ app.include_router(health.router)
 app.include_router(correct.router)
 app.include_router(devices.router)
 app.include_router(keys.router)
+app.include_router(billing.router)
 
 # AWS Lambda handler (Mangum adapter)
 handler = Mangum(app, lifespan="on")

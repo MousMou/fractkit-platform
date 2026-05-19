@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckoutButton } from "@/components/CheckoutButton";
 
 const STATS = [
   { value: "+42.9%", label: "GHZ fidelity", device: "IBM Marrakesh 50q" },
@@ -204,16 +205,22 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    className={
-                      p.highlight
-                        ? "bg-violet-600 hover:bg-violet-500 text-white w-full"
-                        : "border-white/20 text-white hover:bg-white/10 bg-transparent w-full"
-                    }
-                    variant={p.highlight ? "default" : "outline"}
-                  >
-                    {p.cta}
-                  </Button>
+                  {p.tier === "Pro" ? (
+                    <CheckoutButton className="bg-violet-600 hover:bg-violet-500 text-white w-full">
+                      {p.cta}
+                    </CheckoutButton>
+                  ) : (
+                    <Button
+                      className={
+                        p.highlight
+                          ? "bg-violet-600 hover:bg-violet-500 text-white w-full"
+                          : "border-white/20 text-white hover:bg-white/10 bg-transparent w-full"
+                      }
+                      variant={p.highlight ? "default" : "outline"}
+                    >
+                      {p.cta}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}

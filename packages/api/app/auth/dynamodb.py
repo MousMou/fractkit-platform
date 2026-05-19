@@ -38,7 +38,7 @@ def _get_table():
         "dynamodb",
         region_name=os.getenv("AWS_REGION", "us-east-1"),
     )
-    return dynamodb.Table(TABLE_NAME)
+    return dynamodb.Table(os.getenv("DYNAMODB_TABLE", TABLE_NAME))
 
 
 def get_key_item(api_key: str) -> Optional[Dict]:
@@ -106,6 +106,37 @@ def create_key(tier: str = "free", user_id: str = "") -> str:
         "reset_date": today,
     })
     return api_key
+
+
+def update_key_tier(api_key: str, tier: str, stripe_customer_id: str = "") -> bool:
+    """Update the tier (and optionally stripe_customer_id) of an existing key.
+    Returns True if the item existed and was updated, False otherwise.
+    """
+    if tier not in RATE_LIMITS:
+        raise ValueError(f"Invalid tier '{tier}'. Must be: {list(RATE_LIMITS)}")
+
+    table = _get_table()
+    resp = table.update_item(
+        Key={"api_key": api_key},
+        UpdateExpression="SET #t = :tier, stripe_customer_id = :cid",
+        ExpressionAttributeNames={"#t": "tier"},
+        ExpressionAttributeValues={":tier": tier, ":cid": stripe_customer_id},
+        ConditionExpression="attribute_exists(api_key)",
+        ReturnValues="UPDATED_NEW",
+    )
+    return bool(resp.get("Attributes"))
+
+
+def get_key_by_stripe_customer(stripe_customer_id: str) -> Optional[Dict]:
+    """Scan for an API key by Stripe customer ID (used in webhook handlers)."""
+    table = _get_table()
+    resp = table.scan(
+        FilterExpression="stripe_customer_id = :cid",
+        ExpressionAttributeValues={":cid": stripe_customer_id},
+        Limit=1,
+    )
+    items = resp.get("Items", [])
+    return items[0] if items else None
 
 
 def create_table_if_not_exists(table_name: str, region: str = "us-east-1") -> None:
