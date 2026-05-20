@@ -1,45 +1,57 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-type Step = "form" | "success";
-
 export default function RegisterPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [step, setStep] = useState<Step>("form");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [googleRegistered, setGoogleRegistered] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Auto-register when Google session appears
+  useEffect(() => {
+    if (session?.user?.email && !apiKey && !loading && !googleRegistered) {
+      setGoogleRegistered(true);
+      handleRegister(session.user.email);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
+  async function handleRegister(emailAddr: string) {
     setError(null);
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/v1/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify({ email: emailAddr }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.detail ?? "Registro fallido. Intenta de nuevo.");
+        setError(data.detail ?? "Registration failed. Try again.");
         return;
       }
       setApiKey(data.api_key);
-      setStep("success");
     } catch {
-      setError("No se pudo contactar el servidor. Intenta de nuevo.");
+      setError("Could not reach the server. Please try again.");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await handleRegister(email);
   }
 
   function handleCopy() {
@@ -49,240 +61,122 @@ export default function RegisterPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleGoDashboard() {
+  function handleGoToDashboard() {
     if (!apiKey) return;
     localStorage.setItem("fk_api_key", apiKey);
     router.push("/dashboard");
   }
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ background: "#050510" }}>
-      {/* Glow */}
-      <div className="fixed inset-0 pointer-events-none" style={{
-        background: "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(124,58,237,0.16) 0%, transparent 70%)",
-      }} />
+  if (status === "loading" || (session && loading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#050510" }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
+          <span className="text-white/40 text-sm">
+            {session ? "Creating your API key…" : "Loading…"}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
-      {/* Logo */}
-      <Link href="/"
-        className="relative z-10 font-mono text-xl font-bold tracking-tight mb-10 hover:opacity-75 transition-opacity">
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "#050510" }}>
+      <div className="fixed inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(124,58,237,0.18) 0%, transparent 70%)" }} />
+
+      <Link href="/" className="relative z-10 font-mono text-xl font-bold tracking-tight mb-12 hover:opacity-80 transition-opacity">
         fract<span className="text-violet-400">kit</span>
       </Link>
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="rounded-2xl p-8" style={{
-          background: "rgba(255,255,255,0.025)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
-        }}>
+      <div className="relative z-10 w-full max-w-md rounded-2xl p-8"
+        style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
+        {!apiKey ? (
+          <>
+            <h1 className="text-2xl font-extrabold text-white mb-1 tracking-tight">Get your free API key</h1>
+            <p className="text-white/40 text-sm mb-7">100 requests / day. No credit card required.</p>
 
-          {/* ── Step 1: Form ── */}
-          {step === "form" && (
-            <>
-              <div className="mb-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                  style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)" }}>
-                  <span className="live-dot" style={{ width: 6, height: 6 }} />
-                  <span className="text-xs font-semibold text-violet-400">Gratis · 100 req/día</span>
-                </div>
-                <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1">
-                  Crea tu API key
-                </h1>
-                <p className="text-white/35 text-sm">
-                  Sin tarjeta de crédito. Acceso inmediato.
-                </p>
+            {/* Google button */}
+            <button
+              onClick={() => signIn("google")}
+              className="w-full flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 mb-4"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+              </svg>
+              Continue with Google
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
+              <span className="text-xs text-white/25">or use email</span>
+              <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
+            </div>
+
+            <form onSubmit={handleEmailSubmit} className="flex flex-col gap-4">
+              <div>
+                <label htmlFor="email" className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-widest">Email</label>
+                <input id="email" type="email" required value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/20 outline-none transition-all focus:ring-2 focus:ring-violet-500/50"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }} />
+                <p className="text-white/25 text-xs mt-1.5">We&apos;ll email you a copy of your key.</p>
               </div>
+              {error && <p className="text-red-400 text-sm">{error}</p>}
+              <button type="submit" disabled={loading}
+                className="shimmer-btn w-full inline-flex items-center justify-center h-12 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                {loading ? "Creating key…" : "Create free key →"}
+              </button>
+            </form>
 
-              {/* Benefits */}
-              <div className="grid grid-cols-3 gap-2 mb-6">
-                {[
-                  { icon: "⚡", label: "Instant" },
-                  { icon: "🔒", label: "Seguro" },
-                  { icon: "🆓", label: "Gratis" },
-                ].map(({ icon, label }) => (
-                  <div key={label} className="flex flex-col items-center gap-1 py-3 rounded-xl text-center"
-                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                    <span className="text-lg">{icon}</span>
-                    <span className="text-xs text-white/35 font-medium">{label}</span>
-                  </div>
-                ))}
+            <p className="text-center text-white/25 text-xs mt-6">
+              Already have a key?{" "}
+              <Link href="/login" className="text-violet-400 hover:text-violet-300 transition-colors">Log in</Link>
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(124,58,237,0.2)", border: "1px solid rgba(124,58,237,0.4)" }}>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M3.5 9.5L7 13L14.5 5.5" stroke="#a78bfa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
-
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div>
-                  <label htmlFor="email"
-                    className="block text-xs font-semibold text-white/40 mb-2 uppercase tracking-widest">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu@email.com"
-                    autoComplete="email"
-                    className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/20 outline-none transition-all duration-200 focus:ring-2 focus:ring-violet-500/50"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }}
-                  />
-                  <p className="text-white/20 text-xs mt-2">
-                    Lo usarás para recuperar tu key si la pierdes.
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-                    style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)" }}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0">
-                      <circle cx="7" cy="7" r="6" stroke="#f87171" strokeWidth="1.4"/>
-                      <path d="M7 4.5v3M7 9.5h.01" stroke="#f87171" strokeWidth="1.4" strokeLinecap="round"/>
-                    </svg>
-                    <p className="text-red-400 text-xs">{error}</p>
-                  </div>
-                )}
-
-                <button type="submit" disabled={loading}
-                  className="shimmer-btn w-full inline-flex items-center justify-center h-11 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed">
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-                      Creando key…
-                    </span>
-                  ) : "Crear API key gratis →"}
-                </button>
-              </form>
-
-              <p className="text-xs text-white/20 mt-5 text-center leading-relaxed">
-                Al registrarte aceptas nuestros{" "}
-                <Link href="/terms" className="text-white/35 hover:text-white/60 transition-colors underline">Términos</Link>
-                {" "}y{" "}
-                <Link href="/privacy" className="text-white/35 hover:text-white/60 transition-colors underline">Privacidad</Link>.
-              </p>
-            </>
-          )}
-
-          {/* ── Step 2: Success ── */}
-          {step === "success" && apiKey && (
-            <>
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: "rgba(124,58,237,0.18)", border: "1px solid rgba(124,58,237,0.4)" }}>
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M4 10.5L8 14.5L16 6.5" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-extrabold text-white">¡Key creada!</h2>
-                  <p className="text-white/35 text-xs">Cópiala ahora — no se mostrará de nuevo.</p>
-                </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Key created!</h2>
+                <p className="text-white/40 text-xs">Copy it now — it won&apos;t be shown again.</p>
               </div>
+            </div>
 
-              {/* Key display */}
-              <div className="rounded-xl p-4 mb-5"
-                style={{ background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.22)" }}>
-                <div className="flex items-center justify-between gap-3">
-                  <code className="text-violet-300 text-sm font-mono break-all leading-relaxed flex-1">
-                    {apiKey}
-                  </code>
-                  <button onClick={handleCopy}
-                    className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-all"
-                    style={{
-                      background: copied ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.06)",
-                      border: `1px solid ${copied ? "rgba(124,58,237,0.5)" : "rgba(255,255,255,0.10)"}`,
-                      color: copied ? "#a78bfa" : "rgba(255,255,255,0.5)",
-                    }}>
-                    {copied ? (
-                      <>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M2 6.5l2.5 2.5 5.5-5.5" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Copiado
-                      </>
-                    ) : (
-                      <>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <rect x="4" y="1" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.3"/>
-                          <path d="M8 8v2a1 1 0 01-1 1H1a1 1 0 01-1-1V4a1 1 0 011-1h2" stroke="currentColor" strokeWidth="1.3"/>
-                        </svg>
-                        Copiar
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+            <div className="rounded-xl p-4 mb-5 flex items-center justify-between gap-3"
+              style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.25)" }}>
+              <code className="text-violet-300 text-sm font-mono break-all">{apiKey}</code>
+              <button onClick={handleCopy}
+                className="flex-shrink-0 text-xs font-semibold text-white/50 hover:text-white transition-colors px-3 py-1.5 rounded-lg"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}>
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
 
-              {/* Quick start */}
-              <div className="rounded-xl overflow-hidden mb-5"
-                style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
-                <div className="flex items-center gap-2 px-4 py-2.5"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
-                  <div className="flex gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
-                  </div>
-                  <span className="text-xs text-white/20 font-mono ml-1">quick start</span>
-                </div>
-                <pre className="p-4 text-xs font-mono text-white/50 overflow-x-auto leading-relaxed">
-{`pip install noisebridge
+            <label className="flex items-start gap-3 cursor-pointer mb-5 p-3 rounded-xl"
+              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)}
+                className="mt-0.5 accent-violet-500 flex-shrink-0" />
+              <span className="text-xs text-white/50 leading-relaxed">
+                I&apos;ve copied my API key. I understand it won&apos;t be shown again.
+              </span>
+            </label>
 
-from noisebridge import rem_snn_correct
-
-corrected = rem_snn_correct(
-    {"00": 480, "11": 520},
-    n=2,
-    device="ibm_marrakesh"
-)`}
-                </pre>
-              </div>
-
-              {/* Confirmation checkbox */}
-              <label className="flex items-start gap-3 cursor-pointer mb-5 group">
-                <div
-                  onClick={() => setConfirmed(!confirmed)}
-                  className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all mt-0.5"
-                  style={{
-                    background: confirmed ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${confirmed ? "rgba(124,58,237,0.6)" : "rgba(255,255,255,0.15)"}`,
-                  }}>
-                  {confirmed && (
-                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                      <path d="M2 5.5l2.5 2.5 4.5-5" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-                <span className="text-xs text-white/35 leading-relaxed group-hover:text-white/50 transition-colors">
-                  He guardado mi API key en un lugar seguro. Entiendo que no se mostrará de nuevo.
-                </span>
-              </label>
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={handleGoDashboard}
-                  disabled={!confirmed}
-                  className="flex-1 shimmer-btn inline-flex items-center justify-center h-11 rounded-xl text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-opacity">
-                  Ir al dashboard →
-                </button>
-                <Link href="/"
-                  className="flex-1 inline-flex items-center justify-center h-11 rounded-xl text-sm font-semibold text-white/40 hover:text-white/70 transition-colors"
-                  style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
-                  Volver al inicio
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        {step === "form" && (
-          <p className="text-center text-white/20 text-xs mt-5">
-            ¿Ya tienes cuenta?{" "}
-            <Link href="/login" className="text-violet-400 hover:text-violet-300 transition-colors font-medium">
-              Acceder al dashboard
-            </Link>
-          </p>
+            <button onClick={handleGoToDashboard} disabled={!confirmed}
+              className="shimmer-btn w-full inline-flex items-center justify-center h-11 rounded-xl text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed">
+              Go to dashboard →
+            </button>
+          </>
         )}
       </div>
     </div>
