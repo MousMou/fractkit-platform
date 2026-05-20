@@ -6,123 +6,107 @@ import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+type Tab = "key" | "email";
+
 export default function LoginPage() {
   const router = useRouter();
-  const [apiKey, setApiKey] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("key");
 
-  async function handleSubmit(e: React.FormEvent) {
+  // API Key tab
+  const [apiKey, setApiKey] = useState("");
+  const [loadingKey, setLoadingKey] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+
+  // Email tab
+  const [email, setEmail] = useState("");
+  const [loadingEmail, setLoadingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  async function handleKeySubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setKeyError(null);
     const key = apiKey.trim();
     if (!key) return;
 
-    setLoading(true);
+    setLoadingKey(true);
     try {
       const res = await fetch(`${API_URL}/v1/me`, {
         headers: { "X-API-Key": key },
       });
-
       if (res.status === 401) {
-        setError("Invalid API key. Check the key and try again.");
+        setKeyError("API key inválida. Revísala e intenta de nuevo.");
         return;
       }
       if (!res.ok) {
-        setError("Something went wrong. Please try again.");
+        setKeyError("Algo salió mal. Intenta de nuevo.");
         return;
       }
-
-      // Valid key — store and go to dashboard
       localStorage.setItem("fk_api_key", key);
       router.push("/dashboard");
     } catch {
-      setError("Could not reach the server. Try again in a moment.");
+      setKeyError("No se pudo contactar el servidor. Intenta en un momento.");
     } finally {
-      setLoading(false);
+      setLoadingKey(false);
+    }
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailError(null);
+    setLoadingEmail(true);
+    try {
+      await fetch(`${API_URL}/v1/resend-key`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      // Always show success (anti-enumeration)
+      setEmailSent(true);
+    } catch {
+      setEmailError("No se pudo contactar el servidor. Intenta de nuevo.");
+    } finally {
+      setLoadingEmail(false);
     }
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ background: "#050510" }}
-    >
+    <div className="min-h-screen flex flex-col items-center justify-center px-6"
+      style={{ background: "#050510" }}>
       {/* Glow */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(124,58,237,0.18) 0%, transparent 70%)",
-        }}
-      />
+      <div className="fixed inset-0 pointer-events-none" style={{
+        background: "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(124,58,237,0.16) 0%, transparent 70%)",
+      }} />
 
       {/* Logo */}
-      <Link
-        href="/"
-        className="relative z-10 font-mono text-xl font-bold tracking-tight mb-12 hover:opacity-80 transition-opacity"
-      >
+      <Link href="/"
+        className="relative z-10 font-mono text-xl font-bold tracking-tight mb-10 hover:opacity-75 transition-opacity">
         fract<span className="text-violet-400">kit</span>
       </Link>
 
-      <div
-        className="relative z-10 w-full max-w-md rounded-2xl p-8"
-        style={{
-          background: "rgba(255,255,255,0.03)",
+      <div className="relative z-10 w-full max-w-md">
+        {/* Card */}
+        <div className="rounded-2xl p-8" style={{
+          background: "rgba(255,255,255,0.025)",
           border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-        }}
-      >
-        <h1 className="text-2xl font-extrabold text-white mb-1 tracking-tight">
-          Dashboard login
-        </h1>
-        <p className="text-white/40 text-sm mb-7">
-          Enter your noisebridge API key to access your dashboard.
-        </p>
+          boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+        }}>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1">Acceder</h1>
+          <p className="text-white/35 text-sm mb-6">
+            Ingresa al dashboard de tu cuenta noisebridge.
+          </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label
-              htmlFor="apikey"
-              className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-widest"
-            >
-              API Key
-            </label>
-            <input
-              id="apikey"
-              type="password"
-              required
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="nb-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-              className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/20 outline-none transition-all duration-200 focus:ring-2 focus:ring-violet-500/50 font-mono"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.10)",
-              }}
-            />
-          </div>
-
-          {error && (
-            <p className="text-red-400 text-sm">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="shimmer-btn w-full inline-flex items-center justify-center h-12 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed mt-1"
-          >
-            {loading ? "Verifying…" : "Open dashboard →"}
-          </button>
-        </form>
-
-        <p className="text-center text-white/25 text-xs mt-6">
-          Don&apos;t have a key?{" "}
-          <Link href="/register" className="text-violet-400 hover:text-violet-300 transition-colors">
-            Register for free
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
-}
+          {/* Tabs */}
+          <div className="flex gap-1 p-1 rounded-xl mb-6"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            {([
+              { id: "key" as Tab, label: "API Key" },
+              { id: "email" as Tab, label: "Recuperar por email" },
+            ]).map(({ id, label }) => (
+              <button key={id} type="button"
+                onClick={() => { setTab(id); setKeyError(null); setEmailError(null); setEmailSent(false); }}
+                className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all"
+                style={{
+                  background: tab === id ? "rgba(124,58,237,0.3)" : "transparent",
+                  color: tab === id ? "#a78bfa" : "rgba(255,255,255,0.35)",
+                  border: tab === id ? "1px solid rgb
