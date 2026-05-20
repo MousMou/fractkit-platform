@@ -54,7 +54,7 @@ function OverviewContent() {
     if (!Number.isFinite(n) || n < 1 || n > 20) { setErr("n debe ser 1–20."); return; }
     const keyLens = [...new Set(Object.keys(counts).map(k => k.length))];
     if (keyLens.length && !keyLens.includes(n)) {
-      setErr(`Las claves tienen ${keyLens[0]} bits pero n=${n}.`); return;
+      setErr(`n=${n} pero tus claves tienen ${keyLens[0]} bits. Pulsa "↺ auto" para corregirlo automáticamente.`); return;
     }
     setCorrecting(true);
     try {
@@ -125,9 +125,19 @@ function OverviewContent() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-white/35 uppercase tracking-widest mb-1.5">
-                    Qubits (n){nAuto && <span className="ml-1 normal-case text-violet-400/60 font-normal">· auto</span>}
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[11px] font-bold text-white/35 uppercase tracking-widest">
+                      Qubits (n)
+                      {nAuto && <span className="ml-1 normal-case text-violet-400/60 font-normal">· auto</span>}
+                    </label>
+                    {!nAuto && (
+                      <button type="button"
+                        onClick={() => { setNAuto(true); try { const p = JSON.parse(countsInput); const d = detectN(p); if (d) setNInput(String(d)); } catch { /* */ } }}
+                        className="text-[10px] text-violet-400/70 hover:text-violet-400 transition-colors font-mono">
+                        ↺ auto
+                      </button>
+                    )}
+                  </div>
                   <input type="number" min={1} max={20} value={nInput}
                     onChange={e => { setNInput(e.target.value); setNAuto(false); }}
                     className="w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none"
