@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { NavBar } from "@/components/NavBar";
 import { StatCard } from "@/components/StatCard";
+import { QuantumCanvas } from "@/components/QuantumCanvas";
 
 const STATS = [
   { value: "+42.9%", label: "GHZ fidelity", device: "IBM Marrakesh 50q" },
@@ -76,10 +77,11 @@ const TRUSTED = [
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen text-white" style={{ background: "#050510" }}>
+      <QuantumCanvas />
       <NavBar />
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
-      <section className="relative flex flex-col items-center justify-center text-center px-6 pt-40 pb-28 overflow-hidden">
+      <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-40 pb-28 overflow-hidden">
         {/* Line grid */}
         <div className="line-grid absolute inset-0" />
         {/* Hero radial glow */}
@@ -182,7 +184,7 @@ export default function Home() {
       </section>
 
       {/* ── TRUSTED BY ───────────────────────────────────────────────────── */}
-      <section className="py-10 px-6" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+      <section className="relative z-10 py-10 px-6" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-6">
           <p className="text-xs uppercase tracking-widest text-white/25 font-semibold">
             Validated on hardware from
@@ -209,7 +211,7 @@ export default function Home() {
       </section>
 
       {/* ── STATS ────────────────────────────────────────────────────────── */}
-      <section id="results" className="py-20 px-6">
+      <section id="results" className="relative z-10 py-20 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4">
           {STATS.map((s) => (
             <StatCard key={s.device} {...s} />
@@ -218,7 +220,7 @@ export default function Home() {
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────────────────────────── */}
-      <section id="how" className="py-24 px-6" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+      <section id="how" className="relative z-10 py-24 px-6" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-extrabold tracking-tight mb-3" style={{ letterSpacing: "-1px" }}>
@@ -270,7 +272,7 @@ export default function Home() {
       {/* ── PRICING ──────────────────────────────────────────────────────── */}
       <section
         id="pricing"
-        className="py-24 px-6"
+        className="relative z-10 py-24 px-6"
         style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
       >
         <div className="max-w-5xl mx-auto">
@@ -392,7 +394,7 @@ export default function Home() {
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer className="mt-auto px-6 pt-0 pb-10">
+      <footer className="relative z-10 mt-auto px-6 pt-0 pb-10">
         <div
           className="h-px w-full mb-8"
           style={{

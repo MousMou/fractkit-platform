@@ -180,49 +180,288 @@ def benchmark(device: str, shots: int, rounds: int, json_output: bool):
     console.print(table)
 
 
-# ── export obsidian ──────────────────────────────────────────────────────────
+# ── obsidian helpers ─────────────────────────────────────────────────────────
+
+def _vault_log_append(vault_path, entry: str) -> None:
+    """Append one line to FractKit/log.md (creates file if absent)."""
+    from pathlib import Path
+    from datetime import date
+
+    log_path = Path(vault_path) / "FractKit" / "log.md"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(f"\n## [{date.today().isoformat()}] {entry}\n")
+
+
+def _write_note(path, lines: list[str]) -> None:
+    from pathlib import Path
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+# ── export-obsidian ───────────────────────────────────────────────────────────
 
 @cli.command("export-obsidian")
 @click.argument("result_json", type=click.Path(exists=True))
-@click.option("--vault", default=".", show_default=True, help="Path to Obsidian vault")
+@click.option("--vault", default=".", show_default=True, help="Path to Obsidian vault root")
 @click.option("--folder", default="FractKit/Benchmarks", show_default=True)
 def export_obsidian(result_json: str, vault: str, folder: str):
-    """Export a correction result JSON to an Obsidian benchmark note."""
-    import os
+    """Export a /v1/correct API result JSON to an Obsidian benchmark note."""
     from pathlib import Path
     from datetime import date
 
     with open(result_json) as f:
         data = json.load(f)
 
-    device = data.get("device", "unknown")
-    method = data.get("method", "rem_snn")
-    today = date.today().isoformat()
-    slug = f"{today}-{device}-{method}"
-
-    out_dir = Path(vault) / folder
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"{slug}.md"
+    device  = data.get("device", "unknown")
+    method  = data.get("method", "rem_snn")
+    today   = date.today().isoformat()
+    slug    = f"{today}_{device}_{method}"
+    title   = f"Correction: {device} — {method} — {today}"
 
     corrected = data.get("corrected_counts", {})
-    raw = data.get("raw_counts", {})
-    latency = data.get("latency_ms", "—")
+    raw       = data.get("raw_counts", {})
+    latency   = data.get("latency_ms", None)
+
+    vendor = "IBM" if "ibm" in device else ("IQM" if "iqm" in device else
+             "Rigetti" if "rigetti" in device else "unknown")
+    tags = ["benchmark", "correction", method, vendor.lower(),
+            device, "noisebridge"]
 
     lines = [
-        f"# Benchmark: {device} — {method} — {today}",
+        "---",
+        f"type: experiment",
+        f"title: \"{title}\"",
+        f"tags: [{', '.join(tags)}]",
+        f"created: {today}",
+        f"updated: {today}",
+        f"sources: [{result_json}]",
+        f"device: {device}",
+        f"method: {method}",
+        f"vendor: {vendor}",
+        "---",
         "",
-        "## Metadata",
-        f"- **device**: {device}",
-        f"- **method**: {method}",
+        f"# {title}",
+        "",
+        "## Device",
+        f"- **backend_id**: {device}",
+        f"- **vendor**: {vendor}",
+        f"- **method**: `{method}`",
         f"- **date**: {today}",
-        f"- **latency_ms**: {latency}",
         "",
         "## Results",
-        "| Bitstring | Raw | Corrected |",
-        "|-----------|-----|-----------|",
+        "",
+        f"| Bitstring | Raw | Corrected |",
+        f"|-----------|----:|----------:|",
     ]
     for k in sorted(corrected, key=lambda x: -corrected[x]):
-        lines.append(f"| `{k}` | {raw.get(k, '—')} | {corrected[k]:.4f} |")
+        raw_val = raw.get(k, "—")
+        lines.append(f"| `{k}` | {raw_val} | {corrected[k]:.4f} |")
 
-    out_path.write_text("\n".join(lines) + "\n")
+    if latency is not None:
+        lines += ["", f"**Latency**: {latency:.1f} ms"]
+
+    lines += [
+        "",
+        "## Conclusions",
+        "",
+        "- SNN centering matrix applied post-measurement.",
+        "- Zero additional QPU shots required.",
+        "",
+        "## Links",
+        "",
+        f"- [[{device}]]",
+        "- [[SNN architecture]]",
+    ]
+
+    out_path = Path(vault) / folder / f"{slug}.md"
+    _write_note(out_path, lines)
+    _vault_log_append(vault, f"export | {slug}")
     console.print(f"[green]Note written:[/green] {out_path}")
+
+
+# ── ingest-benchmarks ─────────────────────────────────────────────────────────
+
+# Validated hardware results — DO NOT MODIFY (real QPU data, see CLAUDE.md)
+_VALIDATED_BENCHMARKS = [
+    {
+        "id": "ibm_marrakesh_ghz",
+        "device": "ibm_marrakesh",
+        "vendor": "IBM",
+        "task": "GHZ State Fidelity (50q)",
+        "metric": "fidelity_improvement_pct",
+        "raw": 0.285,
+        "mitigated": 0.714,
+        "improvement": "+42.9%",
+        "n_qubits": 50,
+        "date": "2025-05",
+        "method": "rem_snn",
+        "notes": "GHZ fidelity on IBM Marrakesh 50-qubit device. SNN centering matrix applied post-measurement.",
+        "tags": ["benchmark", "real-hardware", "ibm", "ghz", "noisebridge"],
+    },
+    {
+        "id": "iqm_garnet_ler",
+        "device": "iqm_garnet",
+        "vendor": "IQM",
+        "task": "Logical Error Rate — Sierpinski Z-Code",
+        "metric": "ler_reduction_factor",
+        "raw": 0.100,
+        "mitigated": 0.048,
+        "improvement": "2.08x",
+        "n_qubits": 20,
+        "date": "2025-05",
+        "method": "rem_snn",
+        "notes": "Best single-device result across all 63 circuits. 2.08x LER reduction.",
+        "tags": ["benchmark", "real-hardware", "iqm", "qec", "sierpinski", "noisebridge"],
+    },
+    {
+        "id": "rigetti_cepheus_ler",
+        "device": "rigetti_cepheus_108q",
+        "vendor": "Rigetti",
+        "task": "Logical Error Rate — Sierpinski Z-Code",
+        "metric": "ler_reduction_factor",
+        "raw": 0.254,
+        "mitigated": 0.133,
+        "improvement": "1.91x",
+        "n_qubits": 108,
+        "date": "2025-05",
+        "method": "rem_snn",
+        "notes": "Sierpinski Z-Code on Rigetti Cepheus 108-qubit superconducting device.",
+        "tags": ["benchmark", "real-hardware", "rigetti", "qec", "sierpinski", "noisebridge"],
+    },
+    {
+        "id": "iqm_emerald_teleportation",
+        "device": "iqm_emerald",
+        "vendor": "IQM",
+        "task": "Quantum Teleportation Fidelity",
+        "metric": "teleportation_fidelity",
+        "raw": None,
+        "mitigated": 0.966,
+        "improvement": "F=0.959-0.973",
+        "n_qubits": None,
+        "date": "2026",
+        "method": "rem_snn",
+        "notes": "Teleportation fidelity range 0.959-0.973 reported in Northwestern University 2026 study.",
+        "tags": ["benchmark", "real-hardware", "iqm", "teleportation", "noisebridge"],
+    },
+    {
+        "id": "overall_win_rate",
+        "device": "ibm_iqm_combined",
+        "vendor": "IBM + IQM",
+        "task": "Overall Error Mitigation Win Rate",
+        "metric": "win_rate_pct",
+        "raw": None,
+        "mitigated": 0.97,
+        "improvement": "97%",
+        "n_qubits": None,
+        "date": "2025-05",
+        "method": "rem_snn",
+        "notes": "97% win rate over 63 circuits. p=0.011 vs null hypothesis, Cohen d=1.288 vs ZNE.",
+        "tags": ["benchmark", "analysis", "cross-vendor", "statistics", "noisebridge"],
+    },
+]
+
+
+@cli.command("ingest-benchmarks")
+@click.option("--vault", required=True, help="Path to Obsidian vault root")
+@click.option("--folder", default="FractKit/Benchmarks", show_default=True)
+@click.option("--filter", "filter_id", default=None, help="Only write benchmark with this ID")
+@click.option("--dry-run", is_flag=True, help="Preview note filenames without writing")
+def ingest_benchmarks(vault: str, folder: str, filter_id: Optional[str], dry_run: bool):
+    """Write validated hardware benchmark notes into your Obsidian vault.
+
+    Creates one Markdown note per benchmark following the FractKit wiki schema
+    (proper YAML frontmatter, results table, links). Also appends to log.md.
+
+    Benchmarks ingested:
+      ibm_marrakesh_ghz      IBM Marrakesh 50q GHZ fidelity (+42.9%)
+      iqm_garnet_ler         IQM Garnet Sierpinski Z-Code LER (2.08x)
+      rigetti_cepheus_ler    Rigetti Cepheus-108Q LER (1.91x)
+      iqm_emerald_teleportation  IQM Emerald teleportation F=0.959-0.973
+      overall_win_rate       97% win rate, 63 circuits (p=0.011)
+    """
+    from pathlib import Path
+    from datetime import date
+
+    targets = _VALIDATED_BENCHMARKS
+    if filter_id:
+        targets = [b for b in targets if b["id"] == filter_id]
+        if not targets:
+            ids = ", ".join(b["id"] for b in _VALIDATED_BENCHMARKS)
+            console.print(f"[red]Unknown ID '{filter_id}'. Available:[/red] {ids}")
+            sys.exit(1)
+
+    today = date.today().isoformat()
+    written = 0
+
+    for b in targets:
+        filename = f"{b['id']}.md"
+        out_path = Path(vault) / folder / filename
+        title = f"Benchmark: {b['vendor']} {b['device']} — {b['task']}"
+
+        if dry_run:
+            console.print(f"[dim][DRY RUN][/dim] would write: {out_path}")
+            continue
+
+        # Build the note
+        raw_str = str(b["raw"]) if b["raw"] is not None else "—"
+        lines = [
+            "---",
+            f"type: experiment",
+            f"title: \"{title}\"",
+            f"tags: [{', '.join(b['tags'])}]",
+            f"created: {today}",
+            f"updated: {today}",
+            f"device: {b['device']}",
+            f"vendor: {b['vendor']}",
+            f"method: {b['method']}",
+            f"metric: {b['metric']}",
+            f"experiment_type: benchmark",
+            f"hardware: real_qpu",
+            f"noisebridge_validated: true",
+            "sources: [zenodo:10.5281/zenodo.20157839]",
+            "---",
+            "",
+            f"# {title}",
+            "",
+            "## Device",
+            f"- **backend_id**: `{b['device']}`",
+            f"- **vendor**: {b['vendor']}",
+        ]
+        if b["n_qubits"]:
+            lines.append(f"- **n_qubits**: {b['n_qubits']}")
+        lines += [
+            f"- **experiment_date**: {b['date']}",
+            f"- **method**: `{b['method']}`",
+            "",
+            "## Results",
+            "",
+            f"| Metric | Raw | Mitigated | Improvement |",
+            f"|--------|----:|----------:|-------------|",
+            f"| `{b['metric']}` | {raw_str} | {b['mitigated']} | **{b['improvement']}** |",
+            "",
+            "## Notes",
+            "",
+            b["notes"],
+            "",
+            "## Provenance",
+            "",
+            "- **DOI**: [10.5281/zenodo.20157839](https://zenodo.org/doi/10.5281/zenodo.20157839)",
+            "- **PyPI**: [noisebridge](https://pypi.org/project/noisebridge/)",
+            "- **Platform**: [[fractkit-platform]]",
+            "",
+            "## Links",
+            "",
+            f"- [[{b['device']}]]",
+            "- [[SNN architecture]]",
+            "- [[cross_device_comparison]]",
+        ]
+
+        _write_note(out_path, lines)
+        _vault_log_append(vault, f"ingest-benchmarks | {b['id']}")
+        console.print(f"[green]Written:[/green] {out_path}")
+        written += 1
+
+    if not dry_run:
+        console.print(f"\n[cyan]Done:[/cyan] {written}/{len(targets)} notes written to {vault}/{folder}")

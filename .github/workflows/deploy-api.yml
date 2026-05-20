@@ -27,13 +27,11 @@ jobs:
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
-      - name: Install noisebridge + API deps
-        run: |
-          pip install -e "packages/noisebridge[dev]"
-          pip install -r packages/api/requirements-dev.txt
+      - name: Install noisebridge from PyPI + API deps
+        run: pip install -r packages/api/requirements-dev.txt
 
       - name: Run API tests
         run: |
@@ -53,7 +51,7 @@ jobs:
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -88,7 +86,11 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
-            --parameter-overrides Stage=${{ github.event.inputs.stage || 'prod' }} \
+            --parameter-overrides \
+              Stage=${{ github.event.inputs.stage || 'prod' }} \
+              StripeSecretKey=${{ secrets.STRIPE_SECRET_KEY }} \
+              StripeWebhookSecret=${{ secrets.STRIPE_WEBHOOK_SECRET }} \
+              StripePriceId=${{ secrets.STRIPE_PRO_PRICE_ID }} \
             --region ${{ secrets.AWS_REGION }}
 
       - name: Print deployed API URL

@@ -128,6 +128,19 @@ def update_key_tier(api_key: str, tier: str, stripe_customer_id: str = "") -> bo
     return bool(resp.get("Attributes"))
 
 
+def get_key_by_email(email: str) -> Optional[Dict]:
+    """Scan for the most recent API key registered with a given email."""
+    table = _get_table()
+    resp = table.scan(
+        FilterExpression="email = :email",
+        ExpressionAttributeValues={":email": email},
+    )
+    items = resp.get("Items", [])
+    if not items:
+        return None
+    return max(items, key=lambda x: x.get("created_at", ""))
+
+
 def get_key_by_stripe_customer(stripe_customer_id: str) -> Optional[Dict]:
     """Scan for an API key by Stripe customer ID (used in webhook handlers)."""
     table = _get_table()

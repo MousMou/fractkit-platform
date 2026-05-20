@@ -391,9 +391,12 @@ export default function DashboardPage() {
                   <span className="text-xs text-white/30 font-mono">{correctResult.latency_ms.toFixed(1)} ms</span>
                 </div>
                 <div className="space-y-1.5">
-                  {Object.entries(correctResult.corrected).map(([state, prob]) => (
+                  {Object.entries(correctResult.corrected)
+                    .filter(([, prob]) => prob > 0.0001)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([state, prob]) => (
                     <div key={state} className="flex items-center gap-3">
-                      <code className="text-xs font-mono text-white/60 w-16 flex-shrink-0">{state}</code>
+                      <code className="text-xs font-mono text-white/60 w-24 flex-shrink-0">{state}</code>
                       <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
                         <div
                           className="h-full rounded-full"

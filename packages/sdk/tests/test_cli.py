@@ -157,13 +157,92 @@ def test_export_obsidian(runner, tmp_path):
         "--vault", str(tmp_path),
         "--folder", "Benchmarks",
     ])
-    assert result.exit_code == 0
+    assert result.exit_code == 0, result.output
     notes = list((tmp_path / "Benchmarks").glob("*.md"))
     assert len(notes) == 1
     content = notes[0].read_text()
     assert "ibm_marrakesh" in content
     assert "rem_snn" in content
     assert "0.4500" in content
+    # proper YAML frontmatter
+    assert "type: experiment" in content
+    assert "tags:" in content
+    # log updated
+    log = (tmp_path / "FractKit" / "log.md").read_text()
+    assert "export" in log
+
+
+def test_export_obsidian_creates_log(runner, tmp_path):
+    result_data = {
+        "device": "iqm_garnet",
+        "method": "rem_snn",
+        "corrected_counts": {"0": 0.6, "1": 0.4},
+    }
+    result_file = tmp_path / "r.json"
+    result_file.write_text(json.dumps(result_data))
+    runner.invoke(cli, ["export-obsidian", str(result_file), "--vault", str(tmp_path)])
+    log_path = tmp_path / "FractKit" / "log.md"
+    assert log_path.exists()
+    assert "iqm_garnet" in log_path.read_text()
+
+
+# ── ingest-benchmarks ─────────────────────────────────────────────────────────
+
+def test_ingest_benchmarks_writes_all(runner, tmp_path):
+    result = runner.invoke(cli, [
+        "ingest-benchmarks",
+        "--vault", str(tmp_path),
+        "--folder", "FractKit/Benchmarks",
+    ])
+    assert result.exit_code == 0, result.output
+    notes = list((tmp_path / "FractKit" / "Benchmarks").glob("*.md"))
+    assert len(notes) == 5
+
+
+def test_ingest_benchmarks_frontmatter(runner, tmp_path):
+    runner.invoke(cli, [
+        "ingest-benchmarks",
+        "--vault", str(tmp_path),
+        "--folder", "FractKit/Benchmarks",
+        "--filter", "ibm_marrakesh_ghz",
+    ])
+    note = (tmp_path / "FractKit" / "Benchmarks" / "ibm_marrakesh_ghz.md").read_text()
+    assert "type: experiment" in note
+    assert "noisebridge_validated: true" in note
+    assert "+42.9%" in note
+    assert "zenodo" in note
+
+
+def test_ingest_benchmarks_dry_run(runner, tmp_path):
+    result = runner.invoke(cli, [
+        "ingest-benchmarks",
+        "--vault", str(tmp_path),
+        "--dry-run",
+    ])
+    assert result.exit_code == 0
+    assert "DRY RUN" in result.output
+    # nothing written
+    assert not (tmp_path / "FractKit").exists()
+
+
+def test_ingest_benchmarks_invalid_filter(runner, tmp_path):
+    result = runner.invoke(cli, [
+        "ingest-benchmarks",
+        "--vault", str(tmp_path),
+        "--filter", "nonexistent_id",
+    ])
+    assert result.exit_code != 0
+
+
+def test_ingest_benchmarks_updates_log(runner, tmp_path):
+    runner.invoke(cli, [
+        "ingest-benchmarks",
+        "--vault", str(tmp_path),
+        "--filter", "overall_win_rate",
+    ])
+    log = (tmp_path / "FractKit" / "log.md").read_text()
+    assert "ingest-benchmarks" in log
+    assert "overall_win_rate" in log
 
 
 # ── no api key ───────────────────────────────────────────────────────────────
