@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import DashboardShell, { useDashboard, DashboardTopbar, PageTitle, StatCard } from "@/components/DashboardShell";
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
@@ -98,7 +99,7 @@ function JobsContent() {
                 <p className="text-white/25 text-sm">Sin jobs todavía.</p>
               ) : (
                 <div className="space-y-3">
-                  {(["rem_snn","rem","snn"] as const).map(m => {
+                  {(["rem_snn","rem"] as const).map(m => {
                     const count = jobs.filter(j=>j.method===m).length;
                     const pct = total ? (count/total)*100 : 0;
                     if (!count) return null;
@@ -138,7 +139,7 @@ function JobsContent() {
                 <p className="text-white/15 text-xs mt-1">Ejecuta una corrección desde Overview.</p>
               </div>
             ) : (
-              <div className="divide-y" style={{ divideColor:"rgba(255,255,255,0.05)" }}>
+              <div className="divide-y divide-white/[0.05]">
                 {jobs.map(j => {
                   const s = STATUS_COLORS.completed;
                   return (
@@ -168,8 +169,6 @@ function JobsContent() {
   );
 }
 
-// Need useState import
-import { useState } from "react";
 export default function JobsPage() {
   return <DashboardShell><JobsContent /></DashboardShell>;
 }

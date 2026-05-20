@@ -22,7 +22,7 @@ export interface FKJob {
   id: string;
   timestamp: string;
   device: string;
-  method: string;
+  method: "rem_snn" | "rem" | string;
   n: number;
   counts: Record<string, number>;
   corrected: Record<string, number>;

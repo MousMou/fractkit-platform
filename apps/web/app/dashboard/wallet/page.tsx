@@ -9,7 +9,7 @@ const PLANS = [
     price: "$0",
     period: "/mes",
     desc: "Para experimentación",
-    features: ["100 req/día", "8 devices", "Métodos: rem_snn, rem, snn", "Soporte comunidad"],
+    features: ["100 req/día", "8 devices", "Métodos: rem_snn, rem", "Soporte comunidad"],
     cta: "Plan actual",
     current: true,
     color: "rgba(255,255,255,0.15)",

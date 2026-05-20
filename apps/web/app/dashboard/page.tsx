@@ -28,7 +28,7 @@ function OverviewContent() {
   const [nInput, setNInput]   = useState("2");
   const [nAuto, setNAuto]     = useState(true);
   const [device, setDevice]   = useState("ibm_marrakesh");
-  const [method, setMethod]   = useState<"rem_snn"|"rem"|"snn">("rem_snn");
+  const [method, setMethod]   = useState<"rem_snn"|"rem">("rem_snn");
   const [correcting, setCorrecting] = useState(false);
   const [result, setResult]   = useState<{ corrected: Record<string,number>; latency_ms: number; method: string } | null>(null);
   const [err, setErr]         = useState<string|null>(null);
@@ -151,7 +151,7 @@ function OverviewContent() {
               <div>
                 <label className="block text-[11px] font-bold text-white/35 uppercase tracking-widest mb-1.5">Método</label>
                 <div className="flex gap-1.5">
-                  {(["rem_snn","rem","snn"] as const).map(m => (
+                  {(["rem_snn","rem"] as const).map(m => (
                     <button key={m} type="button" onClick={() => setMethod(m)}
                       className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
                       style={{
