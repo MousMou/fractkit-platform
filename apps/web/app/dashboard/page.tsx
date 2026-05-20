@@ -470,4 +470,145 @@ export default function DashboardPage() {
                     <circle cx="7" cy="7" r="6" stroke="#f87171" strokeWidth="1.4"/>
                     <path d="M7 4.5v3M7 9.5h.01" stroke="#f87171" strokeWidth="1.4" strokeLinecap="round"/>
                   </svg>
-                  <p className
+                  <p className="text-red-400 text-xs leading-relaxed">{correctError}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={correcting || !!countsJsonError}
+                className="shimmer-btn w-full inline-flex items-center justify-center h-10 rounded-xl text-sm font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {correcting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                    Corrigiendo…
+                  </span>
+                ) : "Ejecutar corrección →"}
+              </button>
+            </form>
+
+            {/* Result */}
+            {correctResult && (
+              <div className="mt-4 rounded-xl p-4"
+                style={{ background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.18)" }}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-violet-400 flex items-center gap-1.5">
+                    <span className="live-dot" style={{ width: 6, height: 6 }} />
+                    Output corregido
+                  </span>
+                  <span className="text-xs text-white/25 font-mono">{correctResult.latency_ms.toFixed(1)} ms</span>
+                </div>
+                <div className="space-y-2">
+                  {Object.entries(correctResult.corrected)
+                    .filter(([, prob]) => prob > 0.0001)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 8)
+                    .map(([state, prob]) => (
+                      <div key={state} className="flex items-center gap-3">
+                        <code className="text-xs font-mono text-white/50 w-20 flex-shrink-0">{state}</code>
+                        <div className="flex-1 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+                          <div className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${(prob * 100).toFixed(1)}%`,
+                              background: "linear-gradient(90deg,#7c3aed,#06b6d4)",
+                            }} />
+                        </div>
+                        <span className="text-xs font-mono text-white/40 w-10 text-right flex-shrink-0">
+                          {(prob * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right column */}
+          <div className="flex flex-col gap-4">
+            {/* Account */}
+            <div className="rounded-2xl p-6"
+              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="flex items-center gap-2 mb-5">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  <circle cx="7.5" cy="5" r="2.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4"/>
+                  <path d="M2 13c0-2.76 2.46-5 5.5-5s5.5 2.24 5.5 5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+                <h2 className="text-sm font-bold text-white">Cuenta</h2>
+              </div>
+              <dl className="space-y-3.5">
+                {[
+                  { label: "API Key", value: me?.key_prefix, mono: true },
+                  { label: "Email", value: me?.email || "—", mono: false },
+                  {
+                    label: "Tier",
+                    value: (me?.tier ?? "free").charAt(0).toUpperCase() + (me?.tier ?? "free").slice(1),
+                    mono: false,
+                    color: tierColor,
+                  },
+                  { label: "Miembro desde", value: me?.created_at ? formatDate(me.created_at).split(",")[0] : "—", mono: false },
+                ].map(({ label, value, mono, color }) => (
+                  <div key={label} className="flex items-start justify-between gap-4">
+                    <dt className="text-xs text-white/30 flex-shrink-0">{label}</dt>
+                    <dd className={`text-sm text-right break-all ${mono ? "font-mono text-white/60" : "text-white/60"}`}
+                      style={color ? { color } : undefined}>
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            {/* Resources */}
+            <div className="rounded-2xl p-6"
+              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="flex items-center gap-2 mb-4">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  <path d="M2 11V4a1 1 0 011-1h5l3 3v5a1 1 0 01-1 1H3a1 1 0 01-1-1z" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4"/>
+                  <path d="M8 3v3h3" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <h2 className="text-sm font-bold text-white">Recursos</h2>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  { label: "Docs de la API", href: `${API_URL}/docs` },
+                  { label: "GitHub", href: "https://github.com/MousMou/fractkit-platform" },
+                  { label: "PyPI: noisebridge", href: "https://pypi.org/project/noisebridge/" },
+                  { label: "Zenodo", href: "https://zenodo.org/doi/10.5281/zenodo.20157839" },
+                ].map(({ label, href }) => (
+                  <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between group text-sm text-white/35 hover:text-violet-400 transition-colors">
+                    <span>{label}</span>
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <path d="M2 9L9 2M9 2H5M9 2v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Upgrade CTA */}
+            {me?.tier === "free" && (
+              <div className="rounded-2xl p-6 relative overflow-hidden"
+                style={{
+                  background: "rgba(124,58,237,0.07)",
+                  border: "1px solid rgba(124,58,237,0.22)",
+                  boxShadow: "0 0 50px rgba(124,58,237,0.07)",
+                }}>
+                <div className="absolute top-0 right-0 w-32 h-32 opacity-10"
+                  style={{ background: "radial-gradient(circle, #7c3aed 0%, transparent 70%)" }} />
+                <p className="text-sm font-bold text-white mb-0.5">Go Pro · $49/mes</p>
+                <p className="text-xs text-white/35 mb-4">Requests ilimitados, todos los devices, soporte prioritario.</p>
+                <Link href="/#pricing"
+                  className="shimmer-btn inline-flex items-center justify-center w-full h-9 rounded-xl text-sm font-bold text-white">
+                  Actualizar a Pro →
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

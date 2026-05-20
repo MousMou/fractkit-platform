@@ -174,4 +174,117 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <h2 className="text-lg font-extrabold text-white">¡Key creada!</h2>
-                  <p className="text-white/35 text-xs
+                  <p className="text-white/35 text-xs">Cópiala ahora — no se mostrará de nuevo.</p>
+                </div>
+              </div>
+
+              {/* Key display */}
+              <div className="rounded-xl p-4 mb-5"
+                style={{ background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.22)" }}>
+                <div className="flex items-center justify-between gap-3">
+                  <code className="text-violet-300 text-sm font-mono break-all leading-relaxed flex-1">
+                    {apiKey}
+                  </code>
+                  <button onClick={handleCopy}
+                    className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-all"
+                    style={{
+                      background: copied ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.06)",
+                      border: `1px solid ${copied ? "rgba(124,58,237,0.5)" : "rgba(255,255,255,0.10)"}`,
+                      color: copied ? "#a78bfa" : "rgba(255,255,255,0.5)",
+                    }}>
+                    {copied ? (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6.5l2.5 2.5 5.5-5.5" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Copiado
+                      </>
+                    ) : (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <rect x="4" y="1" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+                          <path d="M8 8v2a1 1 0 01-1 1H1a1 1 0 01-1-1V4a1 1 0 011-1h2" stroke="currentColor" strokeWidth="1.3"/>
+                        </svg>
+                        Copiar
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick start */}
+              <div className="rounded-xl overflow-hidden mb-5"
+                style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                <div className="flex items-center gap-2 px-4 py-2.5"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
+                  <div className="flex gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
+                  </div>
+                  <span className="text-xs text-white/20 font-mono ml-1">quick start</span>
+                </div>
+                <pre className="p-4 text-xs font-mono text-white/50 overflow-x-auto leading-relaxed">
+{`pip install noisebridge
+
+from noisebridge import rem_snn_correct
+
+corrected = rem_snn_correct(
+    {"00": 480, "11": 520},
+    n=2,
+    device="ibm_marrakesh"
+)`}
+                </pre>
+              </div>
+
+              {/* Confirmation checkbox */}
+              <label className="flex items-start gap-3 cursor-pointer mb-5 group">
+                <div
+                  onClick={() => setConfirmed(!confirmed)}
+                  className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all mt-0.5"
+                  style={{
+                    background: confirmed ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${confirmed ? "rgba(124,58,237,0.6)" : "rgba(255,255,255,0.15)"}`,
+                  }}>
+                  {confirmed && (
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                      <path d="M2 5.5l2.5 2.5 4.5-5" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                <span className="text-xs text-white/35 leading-relaxed group-hover:text-white/50 transition-colors">
+                  He guardado mi API key en un lugar seguro. Entiendo que no se mostrará de nuevo.
+                </span>
+              </label>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleGoDashboard}
+                  disabled={!confirmed}
+                  className="flex-1 shimmer-btn inline-flex items-center justify-center h-11 rounded-xl text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-opacity">
+                  Ir al dashboard →
+                </button>
+                <Link href="/"
+                  className="flex-1 inline-flex items-center justify-center h-11 rounded-xl text-sm font-semibold text-white/40 hover:text-white/70 transition-colors"
+                  style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
+                  Volver al inicio
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        {step === "form" && (
+          <p className="text-center text-white/20 text-xs mt-5">
+            ¿Ya tienes cuenta?{" "}
+            <Link href="/login" className="text-violet-400 hover:text-violet-300 transition-colors font-medium">
+              Acceder al dashboard
+            </Link>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
