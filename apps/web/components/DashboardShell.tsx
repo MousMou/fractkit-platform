@@ -47,7 +47,10 @@ const Ctx = createContext<DashboardCtx>({
 export function useDashboard() { return useContext(Ctx); }
 
 // ── Nav config ────────────────────────────────────────────────────────────────
-const NAV = [
+interface NavItem { label: string; href: string; icon: string; external?: boolean; }
+interface NavGroup { group: string; items: NavItem[]; }
+
+const NAV: NavGroup[] = [
   {
     group: "Platform",
     items: [
