@@ -392,7 +392,6 @@ export default function DashboardPage() {
                   style={{
                     background: "rgba(255,255,255,0.04)",
                     border: `1px solid ${countsJsonError ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.08)"}`,
-                    focusRingColor: "rgba(124,58,237,0.5)",
                   }}
                 />
                 {countsJsonError && (
