@@ -60,6 +60,7 @@ function OverviewContent() {
     setCountsInput(v);
     setJsonErr(null);
     setResult(null);
+    setErr(null);
     try {
       const p = JSON.parse(v);
       if (nAuto) { const d = detectN(p); if (d) setNInput(String(d)); }
@@ -168,7 +169,7 @@ function OverviewContent() {
                     </div>
                   </div>
                   <input type="number" min={1} max={127} value={nInput}
-                    onChange={e => { setNInput(e.target.value); setNAuto(false); }}
+                    onChange={e => { setNInput(e.target.value); setNAuto(false); setErr(null); }}
                     className="w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none"
                     style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }} />
                 </div>
