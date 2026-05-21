@@ -11,8 +11,8 @@ class CorrectionRequest(BaseModel):
     n: int = Field(
         ...,
         ge=1,
-        le=20,
-        description="Number of qubits",
+        le=127,
+        description="Number of qubits (up to 127 — matches Rigetti Cepheus-108Q, IBM Eagle/Heron)",
     )
     device: Optional[str] = Field(
         default=None,
@@ -30,5 +30,5 @@ class CorrectionRequest(BaseModel):
         if any(v < 0 for v in self.counts.values()):
             raise ValueError("counts values must be non-negative")
         if self.method not in ("rem_snn", "rem", "snn"):
-            raise ValueError("method must be 'rem_snn', 'rem', or 'snn'")
+            raise ValueError("method must be 'rem_snn' (recommended) or 'rem'")
         return self

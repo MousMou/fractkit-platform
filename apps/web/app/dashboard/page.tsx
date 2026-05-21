@@ -15,6 +15,28 @@ function detectN(counts: Record<string, number>): number | null {
   return keys.every(k => k.length === len && /^[01]+$/.test(k)) ? len : null;
 }
 
+/** Generate realistic-looking sample counts for n qubits (up to n=20 for display) */
+function generateSample(n: number): string {
+  const shots = 1000;
+  const states: Record<string, number> = {};
+  // Produce ~4 dominant states + noise for small n, fewer for large n
+  const numStates = Math.min(8, Math.pow(2, n));
+  const zeros = "0".repeat(n);
+  const ones  = "1".repeat(n);
+  // Always include all-zeros and all-ones as dominant
+  states[zeros] = Math.round(shots * 0.45);
+  if (n > 0) states[ones] = Math.round(shots * 0.45);
+  let remaining = shots - (states[zeros] ?? 0) - (states[ones] ?? 0);
+  // Fill a few random error states
+  let filled = 2;
+  while (remaining > 0 && filled < numStates) {
+    const bits = Array.from({ length: n }, () => Math.random() > 0.5 ? "1" : "0").join("");
+    if (!states[bits]) { const c = Math.max(1, Math.round(remaining * 0.4)); states[bits] = c; remaining -= c; filled++; }
+  }
+  if (remaining > 0) states[zeros] = (states[zeros] ?? 0) + remaining;
+  return JSON.stringify(states, null, n <= 5 ? 2 : 0);
+}
+
 const DEVICES = [
   { group: "IBM",     items: ["ibm_marrakesh","ibm_torino","ibm_kingston"] },
   { group: "IQM",     items: ["iqm_garnet","iqm_emerald","iqm_spark"] },
@@ -130,15 +152,22 @@ function OverviewContent() {
                       Qubits (n)
                       {nAuto && <span className="ml-1 normal-case text-violet-400/60 font-normal">· auto</span>}
                     </label>
-                    {!nAuto && (
+                    <div className="flex items-center gap-2">
                       <button type="button"
-                        onClick={() => { setNAuto(true); try { const p = JSON.parse(countsInput); const d = detectN(p); if (d) setNInput(String(d)); } catch { /* */ } }}
-                        className="text-[10px] text-violet-400/70 hover:text-violet-400 transition-colors font-mono">
-                        ↺ auto
+                        onClick={() => { const n = parseInt(nInput,10); if (n>=1 && n<=127) { const s = generateSample(n); setCountsInput(s); setJsonErr(null); setResult(null); setNAuto(false); }}}
+                        className="text-[10px] text-white/30 hover:text-white/60 transition-colors font-mono">
+                        ⚡ ejemplo
                       </button>
-                    )}
+                      {!nAuto && (
+                        <button type="button"
+                          onClick={() => { setNAuto(true); try { const p = JSON.parse(countsInput); const d = detectN(p); if (d) setNInput(String(d)); } catch { /* */ } }}
+                          className="text-[10px] text-violet-400/70 hover:text-violet-400 transition-colors font-mono">
+                          ↺ auto
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <input type="number" min={1} max={20} value={nInput}
+                  <input type="number" min={1} max={127} value={nInput}
                     onChange={e => { setNInput(e.target.value); setNAuto(false); }}
                     className="w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none"
                     style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }} />
